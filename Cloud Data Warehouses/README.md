@@ -1,5 +1,5 @@
 # Udacity - Data Engeenering with AWS nanodegree - Data Warehouse with AWS Redshift
-## Implementing a SQL Data Warehouse using Amazon Redshify
+## Implementing a SQL Data Warehouse using Amazon Redshift
 
 ## Requirements
 * SQL 
@@ -14,7 +14,6 @@
 * [Star Schema for Song Play Analysis](#Star-Schema-for-Song-Play-Analysis)
 * [Project Files](#Project-Files)
 * [Project Steps](#Project-Steps)
-           * [IAM Role](#IAM-Role)
 
 
 ## Introduction
