@@ -50,7 +50,7 @@ The log files in the dataset you'll be working with are partitioned by year and 
 
 And below is an example of what the data in a log file, **2018-11-12-events.json**, looks like.
 
-![Log data](images/log-data.png)
+![Log data]([images/log-data.png](https://github.com/gostrowska/Udacity_Data_Engineering_with_AWS/blob/main/Cloud%20Data%20Warehouses/log_data.PNG))
 
 The log_json_path.json file is used when loading JSON data into Redshift. It specifies the structure of the JSON data so that Redshift can properly parse and load it into the staging tables.
 
@@ -71,32 +71,18 @@ The log_json_path.json file will be used in the COPY command, which is responsib
 - **time** - timestamps of records in songplays broken down into specific units
         start_time, hour, day, week, month, year, weekday
 
+![Star_schema]([images/star_schema.png](https://github.com/gostrowska/Udacity_Data_Engineering_with_AWS/blob/main/Cloud%20Data%20Warehouses/star_schema.PNG))
+
 
 ## Project Files
 **1. dwh.cfg**                    configuration settings for the database.<br>
-**2. create_redshift_cluster.py** script file. Creates a redshift cluster using infrastructure as code IAC<br>
-**3. create_tables.py**           empty staging, fact and dimension tables in Redshift  <br>
-**4. sql_queries.py**             SQL statements used in the project, which will be imported into the script files<br>
-**5. etl.py**  script file. Loads data from S3 to staging tables on Redshift, then transforms data into a set of dimensional tables <br>
-**6. check_tables.py**            checks the database. <br>
-**7. close_redshift_cluster.py** closes a redshift cluster with infrastructure as code IAC<br>
-**8. README.md**                  description of a project<br>
+**2. sql_queries.py**             SQL statements used in the project, which will be imported into the script files<br>
+**3. etl.py**  script file. Loads data from S3 to staging tables on Redshift, then transforms data into a set of dimensional tables <br>
+**4. tests.py**            checks the database. <br>
+**5. README.md**                  description of a project<br>
 
 ## Project Steps
-#### IAM Role](#IAM-Role)
-1.  IAM Role
-    IAM service is a global service, meaning newly created IAM users are not restricted to a specific region by default.
-
-        Go to AWS IAM service and click on the "Add user" button to create a new IAM user in your AWS account.
-        Choose a name of your choice.
-        Select "Programmatic access" as the access type. Click Next.
-        Choose the Attach existing policies directly tab, and select the "AdministratorAccess". Click Next.
-        Skip adding any tags. Click Next.
-        Review and create the user. It will show you a pair of access key ID and secret.
-        Take note of the pair of access key ID and secret. This pair is collectively known as Access key.
-        Save the access key and secret
-
-    Edit the file dwh.cfg and save the access key and secret against the following variables:
+1.  You should have IAM role, IAM user and security group ready. Save KEY and SECRET in dwh.cfg file
 
         KEY= <YOUR_AWS_KEY>
         SECRET= <YOUR_AWS_SECRET>
@@ -106,18 +92,14 @@ The log_json_path.json file will be used in the COPY command, which is responsib
         KEY=6JW3ATLQ34PH3AKI
         SECRET=wnoBHA+qUBFgwCRHJqgqrLU0i
         
-2. Create Redshift cluster
-    Run script **create_redshift_cluster.py**
-    
-3. Create tables
+2. Create tables
     Run script **create_tables.py**
-   
-4. Staging and inserting data (ETL pipeline)
+    
+3. Staging and inserting data (ETL pipeline)
     Run script **etl.py**
+   
+4. Check database
+    Run script **tests.py**
     
-5. Check database
-    Run script **check_tables.py** ??????????
-    
-6. Close the Redshift cluster
-    Run script **close_redshift_cluster.py**
+5. Close the Redshift cluster
 
