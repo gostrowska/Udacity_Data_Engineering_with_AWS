@@ -50,7 +50,7 @@ The log files in the dataset you'll be working with are partitioned by year and 
 
 And below is an example of what the data in a log file, **2018-11-12-events.json**, looks like.
 
-![Log data](./log_data."png)
+![Log data](./log_data.PNG "Log data")
 
 
 The log_json_path.json file is used when loading JSON data into Redshift. It specifies the structure of the JSON data so that Redshift can properly parse and load it into the staging tables.
@@ -72,7 +72,7 @@ The log_json_path.json file will be used in the COPY command, which is responsib
 - **time** - timestamps of records in songplays broken down into specific units
         start_time, hour, day, week, month, year, weekday
 
-![Star_schema]([images/star_schema.png](https://github.com/gostrowska/Udacity_Data_Engineering_with_AWS/blob/main/Cloud%20Data%20Warehouses/star_schema.PNG))
+![Star_schema](./star_schema.PNG "Star schema")
 
 
 ## Project Files
