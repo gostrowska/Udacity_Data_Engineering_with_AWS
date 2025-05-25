@@ -1,0 +1,301 @@
+aws s3 mb s3://graza-bucket # make s3 bucket
+
+aws ec2 describe-vpcs # identify the VPC that needs access to S3:
+
+{
+    "Vpcs": [
+        {
+            "OwnerId": "209811866096",
+            "InstanceTenancy": "default",
+            "CidrBlockAssociationSet": [
+                {
+                    "AssociationId": "vpc-cidr-assoc-03d58560309823bfc",
+                    "CidrBlock": "172.31.0.0/16",
+                    "CidrBlockState": {
+                        "State": "associated"
+                    }
+                }
+            ],
+            "IsDefault": true,
+            "BlockPublicAccessStates": {
+                "InternetGatewayBlockMode": "off"
+            },
+            "VpcId": "vpc-03b21378f75dc5017",
+            "State": "available",
+            "CidrBlock": "172.31.0.0/16",
+            "DhcpOptionsId": "dopt-0b5d4b388ad6976c3"
+        }
+    ]
+}
+
+
+aws ec2 describe-route-tables #identify the routing table you want to configure with your VPC Gateway
+{
+    "RouteTables": [
+        {
+            "Associations": [
+                {
+                    "Main": true,
+                    "RouteTableAssociationId": "rtbassoc-0f27b394d771762a9",
+                    "RouteTableId": "rtb-0be87c8584f4fbe50",
+                    "AssociationState": {
+                        "State": "associated"
+                    }
+                }
+            ],
+            "PropagatingVgws": [],
+            "RouteTableId": "rtb-0be87c8584f4fbe50",
+            "Routes": [
+                {
+                    "DestinationCidrBlock": "172.31.0.0/16",
+                    "GatewayId": "local",
+                    "Origin": "CreateRouteTable",
+                    "State": "active"
+                },
+                {
+                    "DestinationCidrBlock": "0.0.0.0/0",
+                    "GatewayId": "igw-08eb4314ca844817d",
+                    "Origin": "CreateRoute",
+                    "State": "active"
+                }
+            ],
+            "Tags": [],
+            "VpcId": "vpc-03b21378f75dc5017",
+            "OwnerId": "209811866096"
+        }
+    ]
+}
+
+aws ec2 create-vpc-endpoint --vpc-id vpc-03b21378f75dc5017 --service-name com.amazonaws.us-east-1.s3 --route-table-ids rtb-0be87c8584f4fbe50 #  create the S3 Gateway (endpoint)
+{
+    "VpcEndpoint": {
+        "VpcEndpointId": "vpce-0d897169bbf26834f",
+        "VpcEndpointType": "Gateway",
+        "VpcId": "vpc-03b21378f75dc5017",
+        "ServiceName": "com.amazonaws.us-east-1.s3",
+        "State": "available",
+        "PolicyDocument": "{\"Version\":\"2008-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":\"*\",\"Action\":\"*\",\"Resource\":\"*\"}]}",
+        "RouteTableIds": [
+            "rtb-0be87c8584f4fbe50"
+        ],
+        "SubnetIds": [],
+        "Groups": [],
+        "PrivateDnsEnabled": false,
+        "RequesterManaged": false,
+        "NetworkInterfaceIds": [],
+        "DnsEntries": [],
+        "CreationTimestamp": "2025-05-24T15:57:50+00:00",
+        "OwnerId": "209811866096"
+    }
+}
+
+# create IAM role
+aws iam create-role --role-name my-glue-service-role --assume-role-policy-document '{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Principal": {
+                "Service": "glue.amazonaws.com"
+            },
+            "Action": "sts:AssumeRole"
+        }
+    ]
+}'
+
+
+{
+    "Role": {
+        "Path": "/",
+        "RoleName": "my-glue-service-role",
+        "RoleId": "AROATBWODAHYOQHXIAHJE",
+        "Arn": "arn:aws:iam::209811866096:role/my-glue-service-role",
+        "CreateDate": "2025-05-24T16:01:20+00:00",
+        "AssumeRolePolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Principal": {
+                        "Service": "glue.amazonaws.com"
+                    },
+                    "Action": "sts:AssumeRole"
+                }
+            ]
+        }
+    }
+}
+
+# Grant Glue Privileges on the S3 Bucket
+aws iam put-role-policy --role-name my-glue-service-role --policy-name S3Access --policy-document '{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "ListObjectsInBucket",
+            "Effect": "Allow",
+            "Action": [
+                "s3:ListBucket"
+            ],
+            "Resource": [
+                "arn:aws:s3:::graza-bucket"
+            ]
+        },
+        {
+            "Sid": "AllObjectActions",
+            "Effect": "Allow",
+            "Action": "s3:*Object",
+            "Resource": [
+                "arn:aws:s3:::graza-bucket/*"
+            ]
+        }
+    ]
+}'
+
+
+# give Glue access to data in special S3 buckets used for Glue configuration, and several other resources:
+aws iam put-role-policy --role-name my-glue-service-role --policy-name GlueAccess --policy-document '{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "glue:*",
+                "s3:GetBucketLocation",
+                "s3:ListBucket",
+                "s3:ListAllMyBuckets",
+                "s3:GetBucketAcl",
+                "ec2:DescribeVpcEndpoints",
+                "ec2:DescribeRouteTables",
+                "ec2:CreateNetworkInterface",
+                "ec2:DeleteNetworkInterface",
+                "ec2:DescribeNetworkInterfaces",
+                "ec2:DescribeSecurityGroups",
+                "ec2:DescribeSubnets",
+                "ec2:DescribeVpcAttribute",
+                "iam:ListRolePolicies",
+                "iam:GetRole",
+                "iam:GetRolePolicy",
+                "cloudwatch:PutMetricData"
+            ],
+            "Resource": [
+                "*"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "s3:CreateBucket",
+                "s3:PutBucketPublicAccessBlock"
+            ],
+            "Resource": [
+                "arn:aws:s3:::aws-glue-*"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "s3:GetObject",
+                "s3:PutObject",
+                "s3:DeleteObject"
+            ],
+            "Resource": [
+                "arn:aws:s3:::aws-glue-*/*",
+                "arn:aws:s3:::*/*aws-glue-*/*"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "s3:GetObject"
+            ],
+            "Resource": [
+                "arn:aws:s3:::crawler-public*",
+                "arn:aws:s3:::aws-glue-*"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "logs:CreateLogGroup",
+                "logs:CreateLogStream",
+                "logs:PutLogEvents",
+                "logs:AssociateKmsKey"
+            ],
+            "Resource": [
+                "arn:aws:logs:*:*:/aws-glue/*"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "ec2:CreateTags",
+                "ec2:DeleteTags"
+            ],
+            "Condition": {
+                "ForAllValues:StringEquals": {
+                    "aws:TagKeys": [
+                        "aws-glue-service-resource"
+                    ]
+                }
+            },
+            "Resource": [
+                "arn:aws:ec2:*:*:network-interface/*",
+                "arn:aws:ec2:*:*:security-group/*",
+                "arn:aws:ec2:*:*:instance/*"
+            ]
+        }
+    ]
+}'
+
+# copy a sample customer file into S3 using the the AWS Command Line Interface (CLI)
+git clone https://github.com/udacity/nd027-Data-Engineering-Data-Lakes-AWS-Exercises.git
+
+ls
+
+cd nd027-Data-Engineering-Data-Lakes-AWS-Exercises
+
+cd ./project/starter/customer/ #zmiana sciezki
+
+#copy data to s3://graza-bucket/customer/landing/
+aws s3 cp ./project/starter/customer/landing/customer-1691348231425.json s3://graza-bucket/customer/landing/
+aws s3 cp ./customer-1691348231425.json s3://graza-bucket/customer/landing/
+
+#list files:
+aws s3 ls s3://graza-bucket/customer/landing/
+
+#remove file
+aws s3 rm s3://graza-bucket/customer/landing/customer-1691348231425.json
+
+s3://graza-bucket/customer/landing/customer-1691348231425.json
+
+#script path
+s3://aws-glue-assets-209811866096-us-west-2/scripts/
+#script name
+Customer Landing to Trusted.py
+
+# load data from s3:
+df = spark.read.load(“s3://my_bucket/path/to/file/file.csv”)
+#load all files from bucket:
+df = spark.read.load(“s3://my_bucket/”)
+select * from customer_landing;
+
+
+cd nd027-Data-Engineering-Data-Lakes-AWS-Exercises/project/starter
+aws s3 cp landing/ s3://graza-bucket/accelerometer/landing/ --recursive
+
+aws s3 ls s3://graza-bucket/accelerometer/landing/
+
+join_accelerometer_with_customer.sql
+
+aws s3 cp landing/ s3://graza-bucket/step_trainer/landing/ --recursive
+
+aws s3 ls s3://graza-bucket/customer/trusted/
+aws s3 rm --recursive s3://graza-bucket/customer/trusted/
+aws s3 ls s3://graza-bucket/accelerometer/trusted/
+aws s3 rm --recursive s3://graza-bucket/accelerometer/trusted/
+
+step_trainer_trusted:
+select * from step_trainer_landing join customer_curated on step_trainer_landing.serialnumber = customer_curated.serialnumber;
+
+machine_learning_curated:
+select * from step_trainer_trusted inner join accelerometer_trusted on step_trainer_trusted.sensorreadingtime = accelerometer_trusted.timestamp
